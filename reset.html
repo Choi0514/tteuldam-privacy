@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>뜰담 비밀번호 재설정</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; padding: 48px 20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+    background: #f0fdf4; color: #14532d;
+    display: flex; justify-content: center;
+  }
+  .card {
+    background: #fff; border-radius: 20px; padding: 32px 24px;
+    width: 100%; max-width: 400px; box-shadow: 0 4px 24px rgba(0,0,0,.06);
+  }
+  .logo { font-size: 40px; text-align: center; margin-bottom: 8px; }
+  h1 { font-size: 1.15rem; text-align: center; margin: 0 0 6px; color: #111827; }
+  .sub { font-size: .85rem; color: #6b7280; text-align: center; margin: 0 0 24px; line-height: 1.6; }
+  label { display: block; font-size: .8rem; color: #374151; margin-bottom: 6px; font-weight: 600; }
+  input {
+    width: 100%; box-sizing: border-box; border: 1px solid #e5e7eb; border-radius: 12px;
+    padding: 13px 14px; font-size: 1rem; margin-bottom: 14px; outline: none;
+  }
+  input:focus { border-color: #4ade80; }
+  button {
+    width: 100%; background: #16a34a; color: #fff; border: 0; border-radius: 14px;
+    padding: 14px; font-size: 1rem; font-weight: 700; cursor: pointer;
+  }
+  button:disabled { opacity: .6; cursor: default; }
+  .msg { font-size: .85rem; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; line-height: 1.6; }
+  .err { background: #fef2f2; color: #dc2626; }
+  .ok  { background: #f0fdf4; color: #15803d; }
+  .hide { display: none; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #0b1210; color: #e8efea; }
+    .card { background: #141c18; box-shadow: none; }
+    h1 { color: #f1f5f9; } .sub { color: #94a3b8; }
+    label { color: #cbd5e1; }
+    input { background: #0f1714; border-color: #243029; color: #e8efea; }
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">🌿</div>
+  <h1>비밀번호 재설정</h1>
+  <p class="sub">새로 사용할 비밀번호를 입력해주세요.</p>
+
+  <div id="msg" class="msg hide"></div>
+
+  <div id="formArea">
+    <label for="pw1">새 비밀번호</label>
+    <input id="pw1" type="password" placeholder="6자 이상" autocomplete="new-password">
+    <label for="pw2">새 비밀번호 확인</label>
+    <input id="pw2" type="password" placeholder="한 번 더 입력" autocomplete="new-password">
+    <button id="submit" type="button">변경하기</button>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+// 공개 anon 키 — 클라이언트에 노출되도록 설계된 값이며, 접근은 RLS로 제한된다.
+const SUPABASE_URL = 'https://lfjysmkgrcjijukzzyfo.supabase.co'
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmanlzbWtncmNqaWp1a3p6eWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzAxNTMsImV4cCI6MjA5NTQ0NjE1M30.FoR4ft3N-i_89omm8YtrDrMW8t_He98P3aJL8DGAOkg'
+
+const msg = document.getElementById('msg')
+const formArea = document.getElementById('formArea')
+const btn = document.getElementById('submit')
+
+function show(text, kind) {
+  msg.textContent = text
+  msg.className = 'msg ' + kind
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
+  auth: { detectSessionInUrl: true, flowType: 'implicit' },
+})
+
+// 메일의 링크로 들어오면 URL 해시에 복구 토큰이 실려 온다.
+// detectSessionInUrl 이 이를 세션으로 바꿔주므로, 세션이 없으면 만료된 링크로 본다.
+async function init() {
+  const { data } = await supabase.auth.getSession()
+  if (!data.session) {
+    show('링크가 만료되었거나 올바르지 않습니다. 앱에서 다시 요청해주세요.', 'err')
+    formArea.classList.add('hide')
+  }
+}
+init()
+
+btn.addEventListener('click', async () => {
+  const pw1 = document.getElementById('pw1').value
+  const pw2 = document.getElementById('pw2').value
+
+  if (pw1.length < 6) { show('비밀번호는 6자 이상이어야 합니다.', 'err'); return }
+  if (pw1 !== pw2) { show('비밀번호가 서로 다릅니다.', 'err'); return }
+
+  btn.disabled = true
+  btn.textContent = '변경 중...'
+
+  const { error } = await supabase.auth.updateUser({ password: pw1 })
+
+  if (error) {
+    show('변경에 실패했습니다. 링크가 만료되었을 수 있어요. 앱에서 다시 요청해주세요.', 'err')
+    btn.disabled = false
+    btn.textContent = '변경하기'
+    return
+  }
+
+  show('비밀번호가 변경되었습니다. 앱으로 돌아가 새 비밀번호로 로그인해주세요.', 'ok')
+  formArea.classList.add('hide')
+})
+</script>
+</body>
+</html>
