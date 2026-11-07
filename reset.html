@@ -53,66 +53,13 @@
 
   <div id="formArea">
     <label for="pw1">새 비밀번호</label>
-    <input id="pw1" type="password" placeholder="6자 이상" autocomplete="new-password">
+    <input id="pw1" type="password" placeholder="8자 이상" autocomplete="new-password">
     <label for="pw2">새 비밀번호 확인</label>
     <input id="pw2" type="password" placeholder="한 번 더 입력" autocomplete="new-password">
     <button id="submit" type="button">변경하기</button>
   </div>
 </div>
 
-<script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-// 공개 anon 키 — 클라이언트에 노출되도록 설계된 값이며, 접근은 RLS로 제한된다.
-const SUPABASE_URL = 'https://lfjysmkgrcjijukzzyfo.supabase.co'
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmanlzbWtncmNqaWp1a3p6eWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzAxNTMsImV4cCI6MjA5NTQ0NjE1M30.FoR4ft3N-i_89omm8YtrDrMW8t_He98P3aJL8DGAOkg'
-
-const msg = document.getElementById('msg')
-const formArea = document.getElementById('formArea')
-const btn = document.getElementById('submit')
-
-function show(text, kind) {
-  msg.textContent = text
-  msg.className = 'msg ' + kind
-}
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
-  auth: { detectSessionInUrl: true, flowType: 'implicit' },
-})
-
-// 메일의 링크로 들어오면 URL 해시에 복구 토큰이 실려 온다.
-// detectSessionInUrl 이 이를 세션으로 바꿔주므로, 세션이 없으면 만료된 링크로 본다.
-async function init() {
-  const { data } = await supabase.auth.getSession()
-  if (!data.session) {
-    show('링크가 만료되었거나 올바르지 않습니다. 앱에서 다시 요청해주세요.', 'err')
-    formArea.classList.add('hide')
-  }
-}
-init()
-
-btn.addEventListener('click', async () => {
-  const pw1 = document.getElementById('pw1').value
-  const pw2 = document.getElementById('pw2').value
-
-  if (pw1.length < 6) { show('비밀번호는 6자 이상이어야 합니다.', 'err'); return }
-  if (pw1 !== pw2) { show('비밀번호가 서로 다릅니다.', 'err'); return }
-
-  btn.disabled = true
-  btn.textContent = '변경 중...'
-
-  const { error } = await supabase.auth.updateUser({ password: pw1 })
-
-  if (error) {
-    show('변경에 실패했습니다. 링크가 만료되었을 수 있어요. 앱에서 다시 요청해주세요.', 'err')
-    btn.disabled = false
-    btn.textContent = '변경하기'
-    return
-  }
-
-  show('비밀번호가 변경되었습니다. 앱으로 돌아가 새 비밀번호로 로그인해주세요.', 'ok')
-  formArea.classList.add('hide')
-})
-</script>
+<script src="reset.js"></script>
 </body>
 </html>
